@@ -1,47 +1,52 @@
-# === FILE: main.py ===
-import logging
 import os
-import sys
+import logging
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
     ContextTypes,
 )
+from dotenv import load_dotenv
 
+# Load .env jika ada
+load_dotenv()
+
+# Aktifkan logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Konstanta
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_PATH = "/webhook"
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # Contoh: https://namabot.fly.dev/webhook
 
-if BOT_TOKEN:
-    logger.info("TELEGRAM_BOT_TOKEN has been loaded.")
-else:
-    logger.error("TELEGRAM_BOT_TOKEN is None after os.getenv().")
-if not BOT_TOKEN:
-    logger.error("TELEGRAM_BOT_TOKEN environment variable is not set. Exiting.")
-    sys.exit(1)
-
-# --- Command Handlers ---
-
+# === Handler /start ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Bot aktif. Silakan gunakan perintah.")
+    await update.message.reply_text("Bot aktif dan merespons perintah /start.")
 
-
+# === Handler /help ===
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("/start — Mulai bot\n/help — Bantuan")
 
-
-def main():
+# === Fungsi utama ===
+async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
+    # Register handler
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
 
-    app.run_polling()
+    # Jalankan webhook
+    await app.run_webhook(
+        listen="0.0.0.0",
+        port=int(os.environ.get("PORT", 8080)),
+        path=WEBHOOK_PATH,
+        webhook_url=WEBHOOK_URL,
+    )
 
-
+# Entry point
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())
